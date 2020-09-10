@@ -131,6 +131,20 @@ static HRESULT STDMETHODCALLTYPE hook_present(IDXGISwapChain *swap,
 	if (!data.swap && !capture_active()) {
 		setup_dxgi(swap);
 	}
+	
+	/*
+	 * Some programs will create a new swap chain when switching between
+	 * windowed and fullscreen mode.
+	 * In order to change the swapchain, need to call `d3d11_init`.
+	 * To make that happen, `capture_should_init` needs to return true.
+	 * Make `capture_active` return false,
+	 * and add a pending signal to `signal_restart`.
+	 */
+	if (data.swap != swap && capture_active()) {
+		setup_dxgi(swap);
+		SetEvent(signal_restart);
+		active = false;
+	}
 
 	capture = !test_draw && swap == data.swap && !!data.capture;
 	if (capture && !capture_overlay) {
@@ -182,6 +196,20 @@ hook_present1(IDXGISwapChain1 *swap, UINT sync_interval, UINT flags,
 
 	if (!data.swap && !capture_active()) {
 		setup_dxgi(swap);
+	}
+
+	/*
+	 * Some programs will create a new swap chain when switching between
+	 * windowed and fullscreen mode.
+	 * In order to change the swapchain, need to call `d3d11_init`.
+	 * To make that happen, `capture_should_init` needs to return true.
+	 * Make `capture_active` return false,
+	 * and add a pending signal to `signal_restart`.
+	 */
+	if (data.swap != swap && capture_active()) {
+		setup_dxgi(swap);
+		SetEvent(signal_restart);
+		active = false;
 	}
 
 	capture = !test_draw && swap == data.swap && !!data.capture;
